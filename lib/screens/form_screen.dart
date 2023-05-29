@@ -100,7 +100,7 @@ class FormScreen extends StatefulWidget {
 }
 
 class _FormScreenState extends State<FormScreen> {
-  List<Widget> items = [];
+  List<Widget> widgets = [];
   final _formKey = GlobalKey<FormState>();
 
   // Value defined as dynamic as we can have int/strings both in them
@@ -111,7 +111,7 @@ class _FormScreenState extends State<FormScreen> {
     super.initState();
     localvaluesMap = {};
     setLocalValues();
-    itemss();
+    createItemWidgets();
   }
 
   void setLocalValues() {
@@ -143,7 +143,7 @@ class _FormScreenState extends State<FormScreen> {
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: items,
+                children: widgets,
               ),
             ),
           ),
@@ -261,12 +261,12 @@ class _FormScreenState extends State<FormScreen> {
     );
   }
 
-  void itemss() {
+  void createItemWidgets() {
     for (int index = 0; index < localJsonList.length; index++) {
       final currentItem = localJsonList[index];
       if (currentItem["type"] == "short_text" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
@@ -314,7 +314,7 @@ class _FormScreenState extends State<FormScreen> {
       }
       if (currentItem["type"] == "dropdown" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: DropdownButtonFormField<String>(
@@ -369,7 +369,7 @@ class _FormScreenState extends State<FormScreen> {
       }
       if (currentItem['type'] == "number" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
@@ -418,7 +418,7 @@ class _FormScreenState extends State<FormScreen> {
       }
       if (currentItem['type'] == "email" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
@@ -470,7 +470,7 @@ class _FormScreenState extends State<FormScreen> {
       }
       if (currentItem['type'] == "phone_number" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
@@ -526,7 +526,7 @@ class _FormScreenState extends State<FormScreen> {
       }
       if (currentItem["type"] == "rating" &&
           index == localJsonList.indexOf(currentItem)) {
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: SizedBox(
@@ -576,7 +576,7 @@ class _FormScreenState extends State<FormScreen> {
             initialValue = localvaluesMap[currentItem["id"]];
           }
         }
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: StatefulBuilder(
@@ -687,7 +687,7 @@ class _FormScreenState extends State<FormScreen> {
             initialValue = localvaluesMap[currentItem["id"]];
           }
         }
-        items.add(
+        widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: StatefulBuilder(
