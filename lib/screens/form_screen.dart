@@ -1,10 +1,8 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:intl/intl.dart';
 
-List localJson = [
+List localJsonList = [
   {
     "id": "a7PPrsreuktH",
     "title": "Enter your name",
@@ -73,24 +71,24 @@ List localJson = [
   },
   {
     "id": "fg0YM1yIolWp",
-    "title": "Would you consider exploring our center again",
+    "title": "Would you consider exploring our center again?",
     "validations": {"required": true},
     "type": "yes_no",
     "label": "Exploring",
   },
   {
     "id": "a7PPrsreuH",
-    "title": "Enter your name",
+    "title": "Enter your surname",
     "validations": {"required": true},
     "type": "short_text",
-    "label": "Name",
+    "label": "Surname",
   },
   {
     "id": "fg0YMIolWp",
-    "title": "Would you consider exploring our center again",
+    "title": "Would you consider exploring our website again?",
     "validations": {"required": true},
     "type": "yes_no",
-    "label": "Exploring",
+    "label": "Website",
   },
 ];
 
@@ -106,32 +104,24 @@ class _FormScreenState extends State<FormScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Value defined as dynamic as we can have int/strings both in them
-  late Map<String, dynamic> localvalues;
+  late Map<String, dynamic> localvaluesMap;
 
   @override
   void initState() {
     super.initState();
-    localvalues = {};
+    localvaluesMap = {};
     setLocalValues();
     itemss();
   }
 
-  @override
-  void didUpdateWidget(covariant FormScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    log("Inside this");
-  }
-
   void setLocalValues() {
-    for (var item in localJson) {
-      log(item["type"].toString());
+    for (var item in localJsonList) {
       if (item["type"] != "yes_no") {
-        localvalues[item["id"]] = "";
+        localvaluesMap[item["id"]] = "";
       } else {
-        localvalues[item["id"]] = "No";
+        localvaluesMap[item["id"]] = "No";
       }
     }
-    log(localvalues.toString());
   }
 
   @override
@@ -162,50 +152,96 @@ class _FormScreenState extends State<FormScreen> {
       bottomNavigationBar: InkWell(
         onTap: () {
           if (_formKey.currentState!.validate()) {
-            // TODO: Add check for rating
+            // Check for rating
+            for (var mapItem in localvaluesMap.entries) {
+              for (var listItem in localJsonList) {
+                if (listItem['type'] == 'rating' &&
+                    mapItem.key == listItem['id']) {
+                  if (mapItem.value == '') {
+                    const snackBar = SnackBar(
+                      content: Text('Please choose a rating.'),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    return;
+                  }
+                }
+              }
+            }
             _formKey.currentState?.save();
             showDialog(
               context: context,
               builder: (context) {
                 Map<String, dynamic> dialogDisplay = {};
-                for (var item in localJson) {
-                  for (var nestedItem in localvalues.entries) {
+                for (var item in localJsonList) {
+                  for (var nestedItem in localvaluesMap.entries) {
                     if (nestedItem.key == item["id"]) {
                       dialogDisplay[item["label"]] = nestedItem.value;
                     }
                   }
                 }
-                log(dialogDisplay.toString());
                 return AlertDialog(
-                  title: const Text("My title"),
-                  content: const Text("This is my message."),
+                  title: const Text("Details you filled"),
+                  content:
+                      const Text("Please check the details filled by you."),
                   actions: [
-                    ...dialogDisplay.entries.map((entry) {
-                      var w = Row(
-                        children: [
-                          Text(entry.key),
-                          const SizedBox(
-                            width: 12,
+                    ...dialogDisplay.entries.map(
+                      (entry) {
+                        final userData = isEmail(entry.value)
+                            ? entry.value
+                            : entry.value[0].toUpperCase() +
+                                entry.value.substring(1).toLowerCase();
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Row(
+                            children: [
+                              Text(
+                                "${entry.key}: ",
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(
+                                width: 12,
+                              ),
+                              Text(
+                                userData,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          Text(entry.value),
-                        ],
-                      );
-
-                      return w;
-                    }).toList(),
+                        );
+                      },
+                    ).toList(),
                     TextButton(
                       child: const Text("OK"),
                       onPressed: () {
+                        // popping the dialog and screen to show new
+                        // form screen
                         Navigator.pop(context);
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const FormScreen(),
+                          ),
+                        );
                       },
                     )
                   ],
                 );
               },
             );
-            log(localvalues.toString());
           } else {
-            log("Invalid");
+            const snackBar = SnackBar(
+              content: Text('Invalid data.'),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(snackBar);
           }
         },
         child: Container(
@@ -226,18 +262,19 @@ class _FormScreenState extends State<FormScreen> {
   }
 
   void itemss() {
-    for (int i = 0; i < localJson.length; i++) {
-      final currentItem = localJson[i];
-      final index = i;
+    for (int index = 0; index < localJsonList.length; index++) {
+      final currentItem = localJsonList[index];
       if (currentItem["type"] == "short_text" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
               validator: (value) {
                 if (!currentItem["validations"]["required"]) return null;
-                return value?.isEmpty ?? true ? 'required' : null;
+                return value?.isEmpty ?? true
+                    ? '${currentItem["label"]} is required.'
+                    : null;
               },
               key: ValueKey(currentItem["id"]),
               style: const TextStyle(
@@ -265,9 +302,9 @@ class _FormScreenState extends State<FormScreen> {
                 ),
               ),
               onChanged: (String? value) {
-                for (var item in localvalues.entries) {
+                for (var item in localvaluesMap.entries) {
                   if (item.key == currentItem["id"]) {
-                    localvalues[currentItem["id"]] = value;
+                    localvaluesMap[currentItem["id"]] = value;
                   }
                 }
               },
@@ -276,48 +313,71 @@ class _FormScreenState extends State<FormScreen> {
         );
       }
       if (currentItem["type"] == "dropdown" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: DropdownButtonFormField<String>(
               validator: (value) {
                 if (!currentItem["validations"]["required"]) return null;
-                return value == null ? 'field required' : null;
+                return value == null
+                    ? '${currentItem['label']} is required.'
+                    : null;
               },
               value: null,
               icon: const Icon(Icons.arrow_downward),
               elevation: 16,
-              style: const TextStyle(color: Colors.deepPurple),
+              style: const TextStyle(color: Colors.blue),
+              decoration: InputDecoration(
+                fillColor: Colors.grey.shade200,
+                filled: true,
+                hintText: currentItem['title'],
+                border: InputBorder.none,
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: Colors.blue,
+                  ),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: const BorderSide(
+                    color: Colors.grey,
+                  ),
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
               onChanged: (String? value) {
-                for (var item in localvalues.entries) {
+                for (var item in localvaluesMap.entries) {
                   if (item.key == currentItem["id"]) {
-                    localvalues[currentItem["id"]] = value;
+                    localvaluesMap[currentItem["id"]] = value;
                   }
                 }
-
                 setState(() {});
               },
               items: currentItem['properties']["choices"]
-                  .map<DropdownMenuItem<String>>((Map<String, String> value) {
-                return DropdownMenuItem<String>(
-                  value: value['label'],
-                  child: Text(value['label'].toString()),
-                );
-              }).toList(),
+                  .map<DropdownMenuItem<String>>(
+                (Map<String, String> value) {
+                  return DropdownMenuItem<String>(
+                    value: value['label'],
+                    child: Text(value['label'].toString()),
+                  );
+                },
+              ).toList(),
             ),
           ),
         );
       }
       if (currentItem['type'] == "number" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
               validator: (value) {
                 if (!currentItem["validations"]["required"]) return null;
-                return value?.isEmpty ?? true ? 'required' : null;
+                return value?.isEmpty ?? true
+                    ? '${currentItem["label"]} is required.'
+                    : null;
               },
               style: const TextStyle(
                 fontSize: 16.0,
@@ -346,9 +406,9 @@ class _FormScreenState extends State<FormScreen> {
                 ),
               ),
               onChanged: (String? value) {
-                for (var item in localvalues.entries) {
+                for (var item in localvaluesMap.entries) {
                   if (item.key == currentItem["id"]) {
-                    localvalues[currentItem["id"]] = value;
+                    localvaluesMap[currentItem["id"]] = value;
                   }
                 }
               },
@@ -357,14 +417,18 @@ class _FormScreenState extends State<FormScreen> {
         );
       }
       if (currentItem['type'] == "email" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
               validator: (value) {
                 if (!currentItem["validations"]["required"]) return null;
-                return value?.isEmpty ?? true ? 'required' : null;
+                if (value?.isEmpty ?? true) {
+                  return '${currentItem["label"]} is required.';
+                }
+                if (!isEmail(value ?? '')) return 'Not a valid email';
+                return null;
               },
               style: const TextStyle(
                 fontSize: 16.0,
@@ -394,9 +458,9 @@ class _FormScreenState extends State<FormScreen> {
                 ),
               ),
               onChanged: (String? value) {
-                for (var item in localvalues.entries) {
+                for (var item in localvaluesMap.entries) {
                   if (item.key == currentItem["id"]) {
-                    localvalues[currentItem["id"]] = value;
+                    localvaluesMap[currentItem["id"]] = value;
                   }
                 }
               },
@@ -405,14 +469,20 @@ class _FormScreenState extends State<FormScreen> {
         );
       }
       if (currentItem['type'] == "phone_number" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
             child: TextFormField(
               validator: (value) {
                 if (!currentItem["validations"]["required"]) return null;
-                return value?.isEmpty ?? true ? 'required' : null;
+                if (value?.isEmpty ?? true) {
+                  return '${currentItem["label"]} is required.';
+                }
+                if (value != null && value.length < 10) {
+                  return 'Not a valid number. \nPlease enter 10 digits.';
+                }
+                return null;
               },
               style: const TextStyle(
                 fontSize: 16.0,
@@ -444,9 +514,9 @@ class _FormScreenState extends State<FormScreen> {
                 ),
               ),
               onChanged: (String? value) {
-                for (var item in localvalues.entries) {
+                for (var item in localvaluesMap.entries) {
                   if (item.key == currentItem["id"]) {
-                    localvalues[currentItem["id"]] = value;
+                    localvaluesMap[currentItem["id"]] = value;
                   }
                 }
               },
@@ -455,7 +525,7 @@ class _FormScreenState extends State<FormScreen> {
         );
       }
       if (currentItem["type"] == "rating" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
@@ -482,12 +552,13 @@ class _FormScreenState extends State<FormScreen> {
                         color: Colors.amber,
                       ),
                       onRatingUpdate: (double rating) {
-                        for (var item in localvalues.entries) {
+                        for (var item in localvaluesMap.entries) {
                           if (item.key == currentItem["id"]) {
-                            localvalues[currentItem["id"]] = rating.toString();
+                            localvaluesMap[currentItem["id"]] =
+                                rating.toString();
                           }
                         }
-                        log(rating.toString());
+                        setState(() {});
                       },
                     ),
                   ),
@@ -498,201 +569,196 @@ class _FormScreenState extends State<FormScreen> {
         );
       }
       if (currentItem["type"] == "yes_no" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         String initialValue = '';
-        for (var item in localvalues.entries) {
+        for (var item in localvaluesMap.entries) {
           if (item.key == currentItem["id"]) {
-            initialValue = localvalues[currentItem["id"]];
-            setState(() {});
-            log("Callled");
+            initialValue = localvaluesMap[currentItem["id"]];
           }
         }
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
-            child: StatefulBuilder(builder: (context, stateSetter) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('${currentItem["title"]}'),
-                  const SizedBox(
-                    height: 8,
-                  ),
-                  SizedBox(
-                    key: ValueKey(currentItem["id"]),
-                    height: 40,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 5,
-                          child: InkWell(
-                            onTap: () {
-                              for (var item in localvalues.entries) {
-                                if (item.key == currentItem["id"]) {
-                                  localvalues[currentItem["id"]] = "Yes";
-                                  initialValue = "Yes";
-                                }
-                              }
-                              stateSetter(() {});
-                              log(localvalues.toString());
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: initialValue == "Yes"
-                                    ? Colors.green
-                                    : Colors.grey.shade200,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(
-                                    8,
-                                  ),
-                                  bottomLeft: Radius.circular(
-                                    8,
-                                  ),
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                "Yes",
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 5,
-                          child: InkWell(
-                            onTap: () {
-                              for (var item in localvalues.entries) {
-                                if (item.key == currentItem["id"]) {
-                                  localvalues[currentItem["id"]] = "No";
-                                  initialValue = "No";
-                                }
-                              }
-                              stateSetter(() {});
-                              log(localvalues.toString());
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color:
-                                    initialValue == "No" || initialValue == ''
-                                        ? Colors.green
-                                        : Colors.grey.shade200,
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(
-                                    8,
-                                  ),
-                                  bottomRight: Radius.circular(
-                                    8,
-                                  ),
-                                ),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                "No",
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+            child: StatefulBuilder(
+              builder: (context, stateSetter) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('${currentItem["title"]}'),
+                    const SizedBox(
+                      height: 8,
                     ),
-                  ),
-                ],
-              );
-            }),
+                    SizedBox(
+                      key: ValueKey(currentItem["id"]),
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: InkWell(
+                              onTap: () {
+                                for (var item in localvaluesMap.entries) {
+                                  if (item.key == currentItem["id"]) {
+                                    localvaluesMap[currentItem["id"]] = "Yes";
+                                    initialValue = "Yes";
+                                  }
+                                }
+                                stateSetter(() {});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: initialValue == "Yes"
+                                      ? Colors.green
+                                      : Colors.grey.shade200,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(
+                                      8,
+                                    ),
+                                    bottomLeft: Radius.circular(
+                                      8,
+                                    ),
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  "Yes",
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 5,
+                            child: InkWell(
+                              onTap: () {
+                                for (var item in localvaluesMap.entries) {
+                                  if (item.key == currentItem["id"]) {
+                                    localvaluesMap[currentItem["id"]] = "No";
+                                    initialValue = "No";
+                                  }
+                                }
+                                stateSetter(() {});
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      initialValue == "No" || initialValue == ''
+                                          ? Colors.green
+                                          : Colors.grey.shade200,
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(
+                                      8,
+                                    ),
+                                    bottomRight: Radius.circular(
+                                      8,
+                                    ),
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  "No",
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         );
       }
       if (currentItem['type'] == "date" &&
-          index == localJson.indexOf(currentItem)) {
+          index == localJsonList.indexOf(currentItem)) {
         String initialValue = '';
-        for (var item in localvalues.entries) {
+        for (var item in localvaluesMap.entries) {
           if (item.key == currentItem["id"]) {
-            initialValue = localvalues[currentItem["id"]];
-            setState(() {});
-            log("Callled");
+            initialValue = localvaluesMap[currentItem["id"]];
           }
         }
         items.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 12.0),
-            child: StatefulBuilder(builder: (context, stateSetter) {
-              return TextFormField(
-                controller: TextEditingController(text: initialValue),
-                validator: (value) {
-                  log("called");
-                  return initialValue == '' ? 'required' : null;
-                },
-                style: const TextStyle(
-                  fontSize: 16.0,
-                  color: Colors.black,
-                ),
-                key: ValueKey(currentItem["id"]),
-                decoration: InputDecoration(
-                  icon: const Icon(Icons.calendar_today),
-                  border: InputBorder.none,
-                  hintText: currentItem["title"],
-                  filled: true,
-                  fillColor: Colors.grey.shade200,
-                  contentPadding:
-                      const EdgeInsets.only(left: 14.0, bottom: 6.0, top: 8.0),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(
-                      color: Colors.blue,
-                    ),
-                    borderRadius: BorderRadius.circular(10.0),
+            child: StatefulBuilder(
+              builder: (context, stateSetter) {
+                return TextFormField(
+                  controller: TextEditingController(text: initialValue),
+                  validator: (value) {
+                    return initialValue == ''
+                        ? '${currentItem["label"]} is required.'
+                        : null;
+                  },
+                  style: const TextStyle(
+                    fontSize: 16.0,
+                    color: Colors.black,
                   ),
-                  enabledBorder: UnderlineInputBorder(
-                    borderSide: const BorderSide(
-                      color: Colors.grey,
+                  key: ValueKey(currentItem["id"]),
+                  decoration: InputDecoration(
+                    icon: const Icon(Icons.calendar_today),
+                    border: InputBorder.none,
+                    hintText: currentItem["title"],
+                    filled: true,
+                    fillColor: Colors.grey.shade200,
+                    contentPadding: const EdgeInsets.only(
+                        left: 14.0, bottom: 6.0, top: 8.0),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(
+                        color: Colors.blue,
+                      ),
+                      borderRadius: BorderRadius.circular(10.0),
                     ),
-                    borderRadius: BorderRadius.circular(10.0),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: const BorderSide(
+                        color: Colors.grey,
+                      ),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
                   ),
-                ),
-                readOnly: true,
-                onChanged: (String value) {
-                  log("Value is $value");
-                },
-                onTap: () async {
-                  DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: initialValue == ''
-                        ? DateTime.now()
-                        : DateTime.parse(initialValue),
-                    firstDate: DateTime(1950),
-                    lastDate: DateTime(2100),
-                  );
-
-                  if (pickedDate != null) {
-                    log(pickedDate.toString());
-                    String formattedDate =
-                        DateFormat('yyyy-MM-dd').format(pickedDate);
-                    log(formattedDate);
-                    for (var item in localvalues.entries) {
-                      if (item.key == currentItem["id"]) {
-                        localvalues[currentItem["id"]] = formattedDate;
-                        initialValue = formattedDate;
+                  readOnly: true,
+                  onTap: () async {
+                    DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: initialValue == ''
+                          ? DateTime.now()
+                          : DateTime.parse(initialValue),
+                      firstDate: DateTime(1950),
+                      lastDate: DateTime(2100),
+                    );
+                    if (pickedDate != null) {
+                      String formattedDate =
+                          DateFormat('yyyy-MM-dd').format(pickedDate);
+                      for (var item in localvaluesMap.entries) {
+                        if (item.key == currentItem["id"]) {
+                          localvaluesMap[currentItem["id"]] = formattedDate;
+                          initialValue = formattedDate;
+                        }
                       }
+                      stateSetter(() {});
                     }
-                    stateSetter(() {});
-                  } else {
-                    log("No date picked");
-                  }
-                },
-              );
-            }),
+                  },
+                );
+              },
+            ),
           ),
         );
       }
     }
-    setState(() {});
+  }
+
+  bool isEmail(String value) {
+    return RegExp(
+            r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+        .hasMatch(value);
   }
 }
-// TODO: Check for unnecessary setStates.
